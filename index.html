@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>💰 บันทึกค่าใช้จ่าย</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131a;
+    --surface2: #1c1c27;
+    --border: #2a2a3a;
+    --text: #e8e8f0;
+    --text-dim: #8888a0;
+    --accent: #6ee7b7;
+    --accent2: #34d399;
+    --accent-glow: rgba(110, 231, 183, 0.15);
+    --red: #fb7185;
+    --orange: #fdba74;
+    --blue: #93c5fd;
+    --purple: #c4b5fd;
+    --pink: #f9a8d4;
+    --yellow: #fde68a;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'Sarabun', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+
+  /* ─── Ambient Background ─── */
+  body::before {
+    content: '';
+    position: fixed;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(ellipse at 30% 20%, rgba(110,231,183,0.04) 0%, transparent 50%),
+                radial-gradient(ellipse at 70% 80%, rgba(147,197,253,0.03) 0%, transparent 50%);
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  .app {
+    position: relative;
+    z-index: 1;
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 0 16px 100px;
+  }
+
+  /* ─── Header ─── */
+  .header {
+    padding: 24px 0 16px;
+    text-align: center;
+  }
+  .header h1 {
+    font-size: 1.6rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--accent), var(--blue));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.5px;
+  }
+  .header .subtitle {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    margin-top: 2px;
+    font-weight: 300;
+  }
+
+  /* ─── Setup Banner ─── */
+  .setup-banner {
+    background: linear-gradient(135deg, #1a1a2e, #16213e);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 16px;
+    display: none;
+  }
+  .setup-banner.show { display: block; }
+  .setup-banner h3 {
+    color: var(--orange);
+    font-size: 0.9rem;
+    margin-bottom: 8px;
+  }
+  .setup-banner p {
+    font-size: 0.78rem;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+  .setup-banner input {
+    width: 100%;
+    margin-top: 10px;
+    padding: 10px 14px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+  }
+  .setup-banner input:focus { outline: none; border-color: var(--accent); }
+  .setup-banner .btn-save-url {
+    margin-top: 10px;
+    width: 100%;
+    padding: 10px;
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    border-radius: 10px;
+    font-weight: 700;
+    font-family: 'Sarabun', sans-serif;
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+
+  /* ─── Summary Cards ─── */
+  .summary {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .summary-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .summary-card::after {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 60px; height: 60px;
+    border-radius: 0 16px 0 60px;
+    opacity: 0.08;
+  }
+  .summary-card:nth-child(1)::after { background: var(--accent); }
+  .summary-card:nth-child(2)::after { background: var(--red); }
+  .summary-card .label {
+    font-size: 0.72rem;
+    color: var(--text-dim);
+    font-weight: 300;
+    margin-bottom: 6px;
+  }
+  .summary-card .amount {
+    font-family: 'Space Mono', monospace;
+    font-size: 1.2rem;
+    font-weight: 700;
+  }
+  .summary-card:nth-child(1) .amount { color: var(--accent); }
+  .summary-card:nth-child(2) .amount { color: var(--red); }
+  .summary-card .sub {
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    margin-top: 4px;
+  }
+
+  /* ─── Tabs ─── */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--surface);
+    border-radius: 14px;
+    padding: 4px;
+    margin-bottom: 16px;
+    border: 1px solid var(--border);
+  }
+  .tab {
+    flex: 1;
+    padding: 10px;
+    text-align: center;
+    border-radius: 11px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+    background: none;
+    font-family: 'Sarabun', sans-serif;
+  }
+  .tab.active {
+    background: var(--accent);
+    color: var(--bg);
+    box-shadow: 0 2px 12px rgba(110,231,183,0.25);
+  }
+
+  /* ─── Form Panel ─── */
+  .panel { display: none; }
+  .panel.active { display: block; animation: fadeUp 0.3s ease; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .form-group {
+    margin-bottom: 14px;
+  }
+  .form-group label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+  .form-group input, .form-group select, .form-group textarea {
+    width: 100%;
+    padding: 12px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--text);
+    font-family: 'Sarabun', sans-serif;
+    font-size: 1rem;
+    transition: border-color 0.2s;
+  }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+  .form-group select { appearance: none; cursor: pointer; }
+  .form-group textarea { resize: none; height: 60px; }
+
+  .amount-input-wrap {
+    position: relative;
+  }
+  .amount-input-wrap .currency {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+  .amount-input-wrap input {
+    font-family: 'Space Mono', monospace;
+    font-size: 1.4rem;
+    font-weight: 700;
+    padding-right: 45px;
+    text-align: right;
+  }
+
+  /* ─── Category Picker ─── */
+  .category-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+  .cat-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 10px 4px;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Sarabun', sans-serif;
+  }
+  .cat-btn:hover, .cat-btn.selected {
+    border-color: var(--accent);
+    background: var(--accent-glow);
+  }
+  .cat-btn .emoji { font-size: 1.3rem; }
+  .cat-btn .cat-label { font-size: 0.65rem; color: var(--text-dim); font-weight: 600; }
+  .cat-btn.selected .cat-label { color: var(--accent); }
+
+  /* ─── Quick Amount Buttons ─── */
+  .quick-amounts {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+  .quick-btn {
+    padding: 6px 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    color: var(--text-dim);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .quick-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* ─── Submit Button ─── */
+  .btn-submit {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, var(--accent2), var(--accent));
+    color: var(--bg);
+    border: none;
+    border-radius: 14px;
+    font-size: 1rem;
+    font-weight: 800;
+    font-family: 'Sarabun', sans-serif;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: all 0.2s;
+    box-shadow: 0 4px 20px rgba(110,231,183,0.3);
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-submit:active { transform: scale(0.98); }
+  .btn-submit:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+  .btn-submit.loading {
+    pointer-events: none;
+  }
+  .btn-submit.loading::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    animation: shimmer 1.2s infinite;
+  }
+  @keyframes shimmer {
+    to { left: 100%; }
+  }
+
+  /* ─── History List ─── */
+  .history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .history-header h3 {
+    font-size: 0.9rem;
+    font-weight: 700;
+  }
+  .history-header .filter-btn {
+    padding: 5px 12px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    color: var(--text-dim);
+    font-size: 0.72rem;
+    cursor: pointer;
+    font-family: 'Sarabun', sans-serif;
+  }
+
+  .expense-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    margin-bottom: 8px;
+    animation: fadeUp 0.3s ease;
+  }
+  .expense-item .icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+  }
+  .expense-item .info { flex: 1; min-width: 0; }
+  .expense-item .info .name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .expense-item .info .meta {
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+  .expense-item .exp-amount {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--red);
+    flex-shrink: 0;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-dim);
+  }
+  .empty-state .empty-icon { font-size: 2.5rem; margin-bottom: 12px; }
+  .empty-state p { font-size: 0.85rem; }
+
+  /* ─── Settings Panel ─── */
+  .setting-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 10px;
+  }
+  .setting-item label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    display: block;
+    margin-bottom: 8px;
+  }
+  .setting-item input {
+    width: 100%;
+    padding: 10px 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: 'Sarabun', sans-serif;
+    font-size: 0.9rem;
+  }
+  .setting-item input:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  .persons-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .person-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    font-size: 0.78rem;
+    color: var(--text);
+  }
+  .person-tag .remove {
+    cursor: pointer;
+    color: var(--red);
+    font-weight: 700;
+    font-size: 0.9rem;
+  }
+  .add-person-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .add-person-row input { flex: 1; }
+  .btn-add {
+    padding: 10px 18px;
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    border-radius: 10px;
+    font-weight: 700;
+    font-family: 'Sarabun', sans-serif;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  /* ─── Toast ─── */
+  .toast {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-100px);
+    padding: 12px 24px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    z-index: 9999;
+    transition: transform 0.3s ease;
+    font-family: 'Sarabun', sans-serif;
+    max-width: 90%;
+    text-align: center;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.success { background: var(--accent); color: var(--bg); }
+  .toast.error { background: var(--red); color: var(--bg); }
+
+  /* ─── Responsive ─── */
+  @media (min-width: 600px) {
+    .app { padding-top: 20px; }
+    .category-grid { grid-template-columns: repeat(5, 1fr); }
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- Header -->
+  <div class="header">
+    <h1>💰 บันทึกค่าใช้จ่าย</h1>
+    <div class="subtitle">Expense Tracker → Google Sheets</div>
+  </div>
+
+  <!-- Setup Banner -->
+  <div class="setup-banner show" id="setupBanner">
+    <h3>⚙️ ตั้งค่า Google Apps Script URL</h3>
+    <p>วาง Web App URL ที่ได้จากการ Deploy Google Apps Script เพื่อเชื่อมต่อกับ Google Sheets ของคุณ</p>
+    <input type="text" id="scriptUrlInput" placeholder="https://script.google.com/macros/s/xxxxx/exec">
+    <button class="btn-save-url" onclick="saveScriptUrl()">บันทึก URL</button>
+  </div>
+
+  <!-- Summary -->
+  <div class="summary">
+    <div class="summary-card">
+      <div class="label">ใช้จ่ายวันนี้</div>
+      <div class="amount" id="todayTotal">฿0</div>
+      <div class="sub" id="todayCount">0 รายการ</div>
+    </div>
+    <div class="summary-card">
+      <div class="label">เดือนนี้</div>
+      <div class="amount" id="monthTotal">฿0</div>
+      <div class="sub" id="monthCount">0 รายการ</div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('add')">✏️ เพิ่ม</button>
+    <button class="tab" onclick="switchTab('history')">📋 ประวัติ</button>
+    <button class="tab" onclick="switchTab('settings')">⚙️ ตั้งค่า</button>
+  </div>
+
+  <!-- Add Expense Panel -->
+  <div class="panel active" id="panelAdd">
+    <div class="form-group">
+      <label>จำนวนเงิน (บาท)</label>
+      <div class="amount-input-wrap">
+        <input type="number" id="expAmount" placeholder="0" inputmode="decimal" step="0.01">
+        <span class="currency">THB</span>
+      </div>
+      <div class="quick-amounts">
+        <button class="quick-btn" onclick="setAmount(20)">20</button>
+        <button class="quick-btn" onclick="setAmount(50)">50</button>
+        <button class="quick-btn" onclick="setAmount(100)">100</button>
+        <button class="quick-btn" onclick="setAmount(200)">200</button>
+        <button class="quick-btn" onclick="setAmount(500)">500</button>
+        <button class="quick-btn" onclick="setAmount(1000)">1,000</button>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>หมวดหมู่</label>
+      <div class="category-grid" id="categoryGrid"></div>
+    </div>
+
+    <div class="form-group">
+      <label>บันทึก (ไม่จำเป็น)</label>
+      <textarea id="expNote" placeholder="เช่น ข้าวผัดริมทาง..."></textarea>
+    </div>
+
+    <div class="form-group" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+      <div>
+        <label>วันที่</label>
+        <input type="date" id="expDate">
+      </div>
+      <div>
+        <label>ผู้ใช้จ่าย</label>
+        <select id="expPerson"></select>
+      </div>
+    </div>
+
+    <button class="btn-submit" id="btnSubmit" onclick="submitExpense()">
+      บันทึกค่าใช้จ่าย
+    </button>
+  </div>
+
+  <!-- History Panel -->
+  <div class="panel" id="panelHistory">
+    <div class="history-header">
+      <h3>📋 ประวัติล่าสุด</h3>
+      <button class="filter-btn" onclick="loadHistory()">🔄 รีเฟรช</button>
+    </div>
+    <div id="historyList">
+      <div class="empty-state">
+        <div class="empty-icon">📭</div>
+        <p>ยังไม่มีรายการ</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Panel -->
+  <div class="panel" id="panelSettings">
+    <div class="setting-item">
+      <label>🔗 Google Apps Script URL</label>
+      <input type="text" id="settingsUrl" placeholder="https://script.google.com/macros/s/xxxxx/exec">
+      <button class="btn-add" style="width:100%; margin-top:10px;" onclick="saveSettingsUrl()">อัปเดต URL</button>
+    </div>
+
+    <div class="setting-item">
+      <label>👥 รายชื่อบุคคล</label>
+      <div class="persons-list" id="personsList"></div>
+      <div class="add-person-row">
+        <input type="text" id="newPersonName" placeholder="ชื่อบุคคลใหม่...">
+        <button class="btn-add" onclick="addPerson()">+ เพิ่ม</button>
+      </div>
+    </div>
+
+    <div class="setting-item">
+      <label>🗑️ ข้อมูลในเครื่อง</label>
+      <button class="btn-add" style="width:100%; background:var(--red);" onclick="clearLocal()">ล้างข้อมูล Local</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── Categories ───
+const CATEGORIES = [
+  { id: 'food', emoji: '🍜', label: 'อาหาร', color: '#fdba74' },
+  { id: 'drink', emoji: '☕', label: 'เครื่องดื่ม', color: '#a78bfa' },
+  { id: 'transport', emoji: '🚗', label: 'เดินทาง', color: '#93c5fd' },
+  { id: 'shopping', emoji: '🛍️', label: 'ช้อปปิ้ง', color: '#f9a8d4' },
+  { id: 'health', emoji: '💊', label: 'สุขภาพ', color: '#6ee7b7' },
+  { id: 'entertain', emoji: '🎮', label: 'บันเทิง', color: '#c4b5fd' },
+  { id: 'bills', emoji: '📱', label: 'ค่าบริการ', color: '#fde68a' },
+  { id: 'other', emoji: '📦', label: 'อื่นๆ', color: '#94a3b8' },
+];
+
+// ─── State ───
+let state = {
+  scriptUrl: '',
+  persons: ['ฉัน'],
+  selectedCategory: '',
+  localExpenses: [],
+};
+
+// ─── Init ───
+function init() {
+  loadState();
+  renderCategories();
+  renderPersonSelect();
+  renderPersonsList();
+  setToday();
+  updateSummary();
+  checkSetup();
+  loadHistory();
+}
+
+function loadState() {
+  try {
+    const saved = localStorage.getItem('exp_state');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      state = { ...state, ...parsed };
+    }
+  } catch(e) {}
+}
+
+function saveState() {
+  try {
+    localStorage.setItem('exp_state', JSON.stringify({
+      scriptUrl: state.scriptUrl,
+      persons: state.persons,
+      localExpenses: state.localExpenses.slice(-200),
+    }));
+  } catch(e) {}
+}
+
+function checkSetup() {
+  const banner = document.getElementById('setupBanner');
+  if (state.scriptUrl) {
+    banner.classList.remove('show');
+  } else {
+    banner.classList.add('show');
+  }
+  document.getElementById('settingsUrl').value = state.scriptUrl;
+}
+
+// ─── Categories ───
+function renderCategories() {
+  const grid = document.getElementById('categoryGrid');
+  grid.innerHTML = CATEGORIES.map(c => `
+    <button class="cat-btn" data-id="${c.id}" onclick="selectCategory('${c.id}')">
+      <span class="emoji">${c.emoji}</span>
+      <span class="cat-label">${c.label}</span>
+    </button>
+  `).join('');
+}
+
+function selectCategory(id) {
+  state.selectedCategory = id;
+  document.querySelectorAll('.cat-btn').forEach(btn => {
+    btn.classList.toggle('selected', btn.dataset.id === id);
+  });
+}
+
+// ─── Person Select ───
+function renderPersonSelect() {
+  const sel = document.getElementById('expPerson');
+  sel.innerHTML = state.persons.map(p => `<option value="${p}">${p}</option>`).join('');
+}
+
+function renderPersonsList() {
+  const list = document.getElementById('personsList');
+  list.innerHTML = state.persons.map(p => `
+    <span class="person-tag">
+      ${p}
+      ${p !== 'ฉัน' ? `<span class="remove" onclick="removePerson('${p}')">×</span>` : ''}
+    </span>
+  `).join('');
+}
+
+function addPerson() {
+  const input = document.getElementById('newPersonName');
+  const name = input.value.trim();
+  if (!name || state.persons.includes(name)) return;
+  state.persons.push(name);
+  saveState();
+  renderPersonSelect();
+  renderPersonsList();
+  input.value = '';
+  showToast('เพิ่ม ' + name + ' แล้ว', 'success');
+}
+
+function removePerson(name) {
+  state.persons = state.persons.filter(p => p !== name);
+  saveState();
+  renderPersonSelect();
+  renderPersonsList();
+}
+
+// ─── Date ───
+function setToday() {
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  document.getElementById('expDate').value = `${yyyy}-${mm}-${dd}`;
+}
+
+// ─── Quick Amount ───
+function setAmount(val) {
+  document.getElementById('expAmount').value = val;
+}
+
+// ─── Submit ───
+async function submitExpense() {
+  const amount = parseFloat(document.getElementById('expAmount').value);
+  const category = state.selectedCategory;
+  const note = document.getElementById('expNote').value.trim();
+  const date = document.getElementById('expDate').value;
+  const person = document.getElementById('expPerson').value;
+
+  if (!amount || amount <= 0) { showToast('กรุณาใส่จำนวนเงิน', 'error'); return; }
+  if (!category) { showToast('กรุณาเลือกหมวดหมู่', 'error'); return; }
+  if (!date) { showToast('กรุณาเลือกวันที่', 'error'); return; }
+
+  const catObj = CATEGORIES.find(c => c.id === category);
+  const now = new Date();
+  const time = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+
+  const expense = {
+    date, time, amount, category: catObj.label, categoryEmoji: catObj.emoji,
+    note, person, timestamp: now.toISOString()
+  };
+
+  const btn = document.getElementById('btnSubmit');
+  btn.classList.add('loading');
+  btn.textContent = 'กำลังบันทึก...';
+  btn.disabled = true;
+
+  // Save locally first
+  state.localExpenses.push(expense);
+  saveState();
+
+  // Send to Google Sheets
+  if (state.scriptUrl) {
+    try {
+      const response = await fetch(state.scriptUrl, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'add', data: expense })
+      });
+      showToast('✅ บันทึกสำเร็จ!', 'success');
+    } catch (err) {
+      showToast('⚠️ บันทึกใน local แล้ว (ส่ง Sheet ไม่ได้)', 'error');
+    }
+  } else {
+    showToast('✅ บันทึกใน local (ยังไม่ได้ตั้งค่า Sheet)', 'success');
+  }
+
+  // Reset form
+  btn.classList.remove('loading');
+  btn.textContent = 'บันทึกค่าใช้จ่าย';
+  btn.disabled = false;
+  document.getElementById('expAmount').value = '';
+  document.getElementById('expNote').value = '';
+  state.selectedCategory = '';
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('selected'));
+  setToday();
+  updateSummary();
+  renderHistory();
+}
+
+// ─── Summary ───
+function updateSummary() {
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+  const monthStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+
+  const todayItems = state.localExpenses.filter(e => e.date === todayStr);
+  const monthItems = state.localExpenses.filter(e => e.date.startsWith(monthStr));
+
+  const todaySum = todayItems.reduce((s, e) => s + e.amount, 0);
+  const monthSum = monthItems.reduce((s, e) => s + e.amount, 0);
+
+  document.getElementById('todayTotal').textContent = '฿' + todaySum.toLocaleString();
+  document.getElementById('todayCount').textContent = todayItems.length + ' รายการ';
+  document.getElementById('monthTotal').textContent = '฿' + monthSum.toLocaleString();
+  document.getElementById('monthCount').textContent = monthItems.length + ' รายการ';
+}
+
+// ─── History ───
+function loadHistory() {
+  renderHistory();
+}
+
+function renderHistory() {
+  const list = document.getElementById('historyList');
+  const items = [...state.localExpenses].reverse().slice(0, 50);
+
+  if (items.length === 0) {
+    list.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">📭</div>
+        <p>ยังไม่มีรายการ</p>
+      </div>`;
+    return;
+  }
+
+  list.innerHTML = items.map(e => {
+    const cat = CATEGORIES.find(c => c.label === e.category) || CATEGORIES[7];
+    return `
+      <div class="expense-item">
+        <div class="icon" style="background:${cat.color}22; color:${cat.color}">
+          ${e.categoryEmoji || cat.emoji}
+        </div>
+        <div class="info">
+          <div class="name">${e.note || e.category}</div>
+          <div class="meta">${e.date} · ${e.time || ''} · ${e.person}</div>
+        </div>
+        <div class="exp-amount">-฿${e.amount.toLocaleString()}</div>
+      </div>`;
+  }).join('');
+}
+
+// ─── Tabs ───
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    t.classList.toggle('active', ['add','history','settings'][i] === tab);
+  });
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+  if (tab === 'history') loadHistory();
+}
+
+// ─── Settings ───
+function saveScriptUrl() {
+  const url = document.getElementById('scriptUrlInput').value.trim();
+  if (!url) { showToast('กรุณาใส่ URL', 'error'); return; }
+  state.scriptUrl = url;
+  saveState();
+  checkSetup();
+  showToast('✅ บันทึก URL สำเร็จ!', 'success');
+}
+
+function saveSettingsUrl() {
+  const url = document.getElementById('settingsUrl').value.trim();
+  state.scriptUrl = url;
+  saveState();
+  checkSetup();
+  showToast('✅ อัปเดต URL สำเร็จ!', 'success');
+}
+
+function clearLocal() {
+  if (!confirm('ล้างข้อมูลทั้งหมดในเครื่อง?')) return;
+  state.localExpenses = [];
+  saveState();
+  updateSummary();
+  renderHistory();
+  showToast('ล้างข้อมูลแล้ว', 'success');
+}
+
+// ─── Toast ───
+function showToast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + type + ' show';
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ─── Start ───
+init();
+</script>
+</body>
+</html>
